@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Square & Square Root Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-light: #818CF8;
+            --secondary: #10B981;
+            --secondary-light: #34D399;
+            --leftover: #F59E0B;
+            --empty: #E5E7EB;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F3F4F6;
+            color: #1F2937;
+        }
+
+        .math-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Grid container responsive sizing */
+        #grid-container {
+            display: grid;
+            gap: 4px;
+            width: 100%;
+            max-width: 500px;
+            aspect-ratio: 1 / 1;
+            margin: 0 auto;
+            padding: 1rem;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Individual block styling and animation */
+        .grid-block {
+            border-radius: 4px;
+            opacity: 0;
+            transform: scale(0.5);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.15);
+        }
+
+        @keyframes popIn {
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .block-perfect {
+            background: linear-gradient(135deg, var(--primary-light), var(--primary));
+        }
+
+        .block-leftover {
+            background: linear-gradient(135deg, #FCD34D, var(--leftover));
+        }
+
+        .block-empty {
+            background-color: var(--empty);
+            box-shadow: none;
+            opacity: 0.5;
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 0.5;
+                transform: scale(1);
+            }
+        }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.4);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #D1D5DB;
+            border-radius: 4px;
+        }
+        
+        .mode-btn.active {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <header class="bg-indigo-600 text-white p-4 shadow-md sticky top-0 z-10">
+        <div class="container mx-auto flex justify-between items-center max-w-6xl">
+            <h1 class="text-xl md:text-2xl font-bold flex items-center gap-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+                Square & Root Explorer
+            </h1>
+            <button id="mute-btn" class="p-2 bg-indigo-500 rounded-full hover:bg-indigo-400 transition" aria-label="Toggle Sound">
+                <svg id="icon-vol-on" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5 10c-.828 0-1.5.672-1.5 1.5v3c0 .828.672 1.5 1.5 1.5h3.5l4.5 4.5V3.5L8.5 10H5z"></path></svg>
+                <svg id="icon-vol-off" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h2.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto p-4 max-w-6xl flex flex-col lg:flex-row gap-6 items-start mt-4">
+        
+        <div class="w-full lg:w-1/3 flex flex-col gap-6">
+            
+            <!-- Mode Selector -->
+            <div class="bg-white p-1 rounded-xl shadow-sm border border-gray-200 flex text-center">
+                <button id="mode-build" class="mode-btn active flex-1 py-2 px-4 rounded-lg font-semibold text-gray-600 border border-transparent transition-all">Build a Square</button>
+                <button id="mode-root" class="mode-btn flex-1 py-2 px-4 rounded-lg font-semibold text-gray-600 border border-transparent transition-all">Find Square Root</button>
+            </div>
+
+            <!-- Controls -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+                <h2 id="control-title" class="text-lg font-bold text-gray-700 mb-4">Set Side Length (n)</h2>
+                
+                <div class="flex items-center gap-4 mb-6">
+                    <button id="btn-minus" class="w-12 h-12 rounded-full bg-gray-100 text-gray-700 font-bold text-xl hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center transition shadow-sm">-</button>
+                    <div class="flex-grow text-center">
+                        <span id="current-val-display" class="text-4xl font-extrabold text-indigo-600 math-font">4</span>
+                    </div>
+                    <button id="btn-plus" class="w-12 h-12 rounded-full bg-gray-100 text-gray-700 font-bold text-xl hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center transition shadow-sm">+</button>
+                </div>
+
+                <input type="range" id="number-slider" min="1" max="20" value="4" class="w-full">
+                
+                <div class="flex justify-between text-xs text-gray-400 mt-2 font-medium">
+                    <span id="range-min">1</span>
+                    <span id="range-max">20</span>
+                </div>
+            </div>
+
+            <!-- Info Panel -->
+            <div id="info-panel" class="bg-gradient-to-br from-indigo-50 to-blue-50 p-6 rounded-2xl shadow-lg border border-indigo-100">
+                <h3 class="text-sm uppercase tracking-wider font-bold text-indigo-400 mb-2">Mathematical Equation</h3>
+                <div id="equation-display" class="text-3xl font-black text-indigo-900 math-font mb-4">
+                    4 × 4 = 16
+                </div>
+                <div id="explanation-text" class="text-gray-700 text-sm leading-relaxed">
+                    A square with a side length of <strong class="text-indigo-600">4</strong> contains a total of <strong class="text-indigo-600">16</strong> blocks. Therefore, the square of 4 is 16 (4² = 16).
+                </div>
+            </div>
+
+        </div>
+
+        <div class="w-full lg:w-2/3 flex flex-col items-center justify-center bg-gray-50 rounded-2xl p-6 lg:p-10 border-2 border-dashed border-gray-200">
+            <div id="grid-wrapper" class="w-full relative">
+                <!-- Grid Labels -->
+                <div id="top-label" class="absolute -top-8 left-0 right-0 text-center font-bold text-indigo-600 math-font text-xl transition-opacity">n = 4</div>
+                <div id="left-label" class="absolute top-0 bottom-0 -left-8 flex items-center font-bold text-indigo-600 math-font text-xl transition-opacity" style="writing-mode: vertical-rl; transform: rotate(180deg);">n = 4</div>
+                
+                <!-- The Grid -->
+                <div id="grid-container">
+                    <!-- Blocks injected by JS -->
+                </div>
+            </div>
+            <div id="grid-footer" class="mt-8 text-center hidden">
+                <span class="inline-block px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-semibold mr-2">Perfect Square</span>
+                <span class="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-semibold">Leftover Blocks</span>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // --- AUDIO SYSTEM (Web Audio API) ---
+        let audioCtx;
+        let isMuted = false;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playTone(freq, type = 'sine', duration = 0.1, vol = 0.1) {
+            if (isMuted) return;
+            initAudio();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(vol, audioCtx.currentTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playPop(index, total) {
+            // Pitch goes up slightly based on index
+            const baseFreq = 400;
+            const freq = baseFreq + (index * (400 / total));
+            playTone(freq, 'sine', 0.1, 0.05);
+        }
+
+        function playChime() {
+            if (isMuted) return;
+            // Play a satisfying major chord (C major: C4, E4, G4, C5)
+            setTimeout(() => playTone(261.63, 'triangle', 0.6, 0.1), 0);
+            setTimeout(() => playTone(329.63, 'triangle', 0.6, 0.1), 50);
+            setTimeout(() => playTone(392.00, 'triangle', 0.6, 0.1), 100);
+            setTimeout(() => playTone(523.25, 'triangle', 0.8, 0.15), 150);
+        }
+
+        // --- APP STATE ---
+        const state = {
+            mode: 'build', // 'build' or 'root'
+            buildValue: 4, // 1 to 20
+            rootValue: 16  // 1 to 400
+        };
+
+        // --- DOM ELEMENTS ---
+        const els = {
+            modeBuild: document.getElementById('mode-build'),
+            modeRoot: document.getElementById('mode-root'),
+            slider: document.getElementById('number-slider'),
+            btnMinus: document.getElementById('btn-minus'),
+            btnPlus: document.getElementById('btn-plus'),
+            currentValDisplay: document.getElementById('current-val-display'),
+            controlTitle: document.getElementById('control-title'),
+            rangeMin: document.getElementById('range-min'),
+            rangeMax: document.getElementById('range-max'),
+            equationDisplay: document.getElementById('equation-display'),
+            explanationText: document.getElementById('explanation-text'),
+            gridContainer: document.getElementById('grid-container'),
+            topLabel: document.getElementById('top-label'),
+            leftLabel: document.getElementById('left-label'),
+            gridFooter: document.getElementById('grid-footer'),
+            muteBtn: document.getElementById('mute-btn'),
+            iconVolOn: document.getElementById('icon-vol-on'),
+            iconVolOff: document.getElementById('icon-vol-off')
+        };
+
+        // --- CORE LOGIC & RENDERING ---
+        
+        function updateUI(animateGrid = true) {
+            let val = state.mode === 'build' ? state.buildValue : state.rootValue;
+            els.currentValDisplay.textContent = val;
+            els.slider.value = val;
+
+            if (state.mode === 'build') {
+                renderBuildMode(val, animateGrid);
+            } else {
+                renderRootMode(val, animateGrid);
+            }
+        }
+
+        function renderBuildMode(n, animate) {
+            const area = n * n;
+            
+            // Text & Labels
+            els.controlTitle.textContent = "Set Side Length (n)";
+            els.equationDisplay.innerHTML = `${n} × ${n} = <span class="text-primary">${area}</span>`;
+            els.explanationText.innerHTML = `A square with a side length of <strong class="text-indigo-600">${n}</strong> contains a total of <strong class="text-indigo-600">${area}</strong> blocks. Therefore, the square of ${n} is ${area} (${n}² = ${area}).`;
+            els.topLabel.textContent = `n = ${n}`;
+            els.leftLabel.textContent = `n = ${n}`;
+            els.topLabel.style.opacity = 1;
+            els.leftLabel.style.opacity = 1;
+            els.gridFooter.classList.add('hidden');
+
+            // Grid Rendering
+            els.gridContainer.innerHTML = '';
+            els.gridContainer.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+            
+            for (let i = 0; i < area; i++) {
+                const block = document.createElement('div');
+                block.className = 'grid-block block-perfect';
+                if (animate) {
+                    // Stagger animation radially or linearly
+                    const row = Math.floor(i / n);
+                    const col = i % n;
+                    const delay = (row + col) * 0.02;
+                    block.style.animationDelay = `${delay}s`;
+                    
+                    // Trigger sound on animation start
+                    if (!isMuted) {
+                        setTimeout(() => playPop(i, area), delay * 1000);
+                    }
+                } else {
+                    block.style.animation = 'none';
+                    block.style.opacity = 1;
+                    block.style.transform = 'scale(1)';
+                }
+                els.gridContainer.appendChild(block);
+            }
+        }
+
+        function renderRootMode(area, animate) {
+            const exactRoot = Math.sqrt(area);
+            const isPerfect = Number.isInteger(exactRoot);
+            const baseSide = Math.floor(exactRoot);
+            const perfectArea = baseSide * baseSide;
+            const leftover = area - perfectArea;
+            
+            // For visualization, we need a grid big enough to hold 'area' blocks.
+            // If it's a perfect square, baseSide is enough. If not, we need baseSide + 1.
+            const gridSize = isPerfect ? baseSide : baseSide + 1;
+            const totalGridSlots = gridSize * gridSize;
+
+            // Text & Labels
+            els.controlTitle.textContent = "Set Total Area (Blocks)";
+            
+            if (isPerfect) {
+                els.equationDisplay.innerHTML = `√${area} = <span class="text-primary">${baseSide}</span>`;
+                els.explanationText.innerHTML = `<strong class="text-indigo-600">${area}</strong> blocks perfectly form a square with side length <strong class="text-indigo-600">${baseSide}</strong>. It is a Perfect Square!`;
+                if (animate) playChime();
+            } else {
+                els.equationDisplay.innerHTML = `√${area} ≈ <span class="text-leftover">${exactRoot.toFixed(2)}</span>`;
+                els.explanationText.innerHTML = `<strong class="text-indigo-600">${area}</strong> blocks form a <strong class="text-indigo-600">${baseSide} × ${baseSide}</strong> square (using ${perfectArea} blocks), with <strong class="text-yellow-600">${leftover} leftover</strong> blocks. The exact root is between ${baseSide} and ${baseSide + 1}.`;
+            }
+
+            els.topLabel.style.opacity = 0;
+            els.leftLabel.style.opacity = 0;
+            els.gridFooter.classList.remove('hidden');
+
+            // Grid Rendering
+            els.gridContainer.innerHTML = '';
+            els.gridContainer.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+            
+            for (let i = 0; i < totalGridSlots; i++) {
+                const block = document.createElement('div');
+                
+                if (i < perfectArea) {
+                    block.className = 'grid-block block-perfect';
+                } else if (i < perfectArea + leftover) {
+                    block.className = 'grid-block block-leftover';
+                } else {
+                    block.className = 'grid-block block-empty';
+                }
+
+                if (animate) {
+                    const row = Math.floor(i / gridSize);
+                    const col = i % gridSize;
+                    const delay = (row + col) * 0.015;
+                    block.style.animationDelay = `${delay}s`;
+                    
+                    if (!isMuted && i < area) {
+                         setTimeout(() => playPop(i, area), delay * 1000);
+                    }
+                } else {
+                    block.style.animation = 'none';
+                    block.style.opacity = block.className.includes('empty') ? 0.5 : 1;
+                    block.style.transform = 'scale(1)';
+                }
+                
+                els.gridContainer.appendChild(block);
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+
+        els.modeBuild.addEventListener('click', () => {
+            state.mode = 'build';
+            els.modeBuild.classList.add('active');
+            els.modeRoot.classList.remove('active');
+            
+            // Adjust slider range
+            els.slider.min = 1;
+            els.slider.max = 20;
+            els.rangeMin.textContent = '1';
+            els.rangeMax.textContent = '20';
+            
+            // Sync value intelligently
+            state.buildValue = Math.min(20, Math.round(Math.sqrt(state.rootValue)) || 4);
+            
+            updateUI(true);
+        });
+
+        els.modeRoot.addEventListener('click', () => {
+            state.mode = 'root';
+            els.modeRoot.classList.add('active');
+            els.modeBuild.classList.remove('active');
+            
+            // Adjust slider range
+            els.slider.min = 1;
+            els.slider.max = 400;
+            els.rangeMin.textContent = '1';
+            els.rangeMax.textContent = '400';
+            
+            // Sync value intelligently
+            state.rootValue = state.buildValue * state.buildValue;
+            
+            updateUI(true);
+        });
+
+        els.slider.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            if (state.mode === 'build') {
+                state.buildValue = val;
+            } else {
+                state.rootValue = val;
+            }
+            // Real-time update without re-triggering full animation for performance, 
+            // but we want the sounds and visual updates.
+            updateUI(true);
+        });
+
+        function adjustValue(delta) {
+            let val = state.mode === 'build' ? state.buildValue : state.rootValue;
+            let min = parseInt(els.slider.min);
+            let max = parseInt(els.slider.max);
+            
+            val += delta;
+            if (val >= min && val <= max) {
+                if (state.mode === 'build') state.buildValue = val;
+                else state.rootValue = val;
+                updateUI(true);
+            }
+        }
+
+        els.btnMinus.addEventListener('click', () => adjustValue(-1));
+        els.btnPlus.addEventListener('click', () => adjustValue(1));
+
+        els.muteBtn.addEventListener('click', () => {
+            isMuted = !isMuted;
+            if (isMuted) {
+                els.iconVolOn.classList.add('hidden');
+                els.iconVolOff.classList.remove('hidden');
+                els.muteBtn.classList.replace('bg-indigo-500', 'bg-gray-400');
+            } else {
+                els.iconVolOn.classList.remove('hidden');
+                els.iconVolOff.classList.add('hidden');
+                els.muteBtn.classList.replace('bg-gray-400', 'bg-indigo-500');
+                initAudio(); // Initialize on explicit user intent
+                playTone(440, 'sine', 0.1, 0.1); // Feedback pip
+            }
+        });
+
+        // Initialize on load
+        window.onload = () => {
+            updateUI(true);
+            
+            // First click anywhere initializes audio context if not muted
+            document.body.addEventListener('click', initAudio, { once: true });
+            document.body.addEventListener('touchstart', initAudio, { once: true });
+        };
+
+    </script>
+</body>
+</html>
