@@ -1,475 +1,1621 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Square & Square Root Explorer</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #4F46E5;
-            --primary-light: #818CF8;
-            --secondary: #10B981;
-            --secondary-light: #34D399;
-            --leftover: #F59E0B;
-            --empty: #E5E7EB;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #F3F4F6;
-            color: #1F2937;
-        }
-
-        .math-font {
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        /* Grid container responsive sizing */
-        #grid-container {
-            display: grid;
-            gap: 4px;
-            width: 100%;
-            max-width: 500px;
-            aspect-ratio: 1 / 1;
-            margin: 0 auto;
-            padding: 1rem;
-            background: white;
-            border-radius: 1rem;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Individual block styling and animation */
-        .grid-block {
-            border-radius: 4px;
-            opacity: 0;
-            transform: scale(0.5);
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.15);
-        }
-
-        @keyframes popIn {
-            to {
-                opacity: 1;
-                transform: scale(1);
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Virtual Refinery: Fractional Distillation of Crude Oil</title>
+  <!-- Favicon for Browser Tabs & Bookmarks -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛢️</text></svg>">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            refinery: {
+              900: '#0c111d',
+              800: '#161f33',
+              700: '#1f2d4a',
+              accent: '#f59e0b',
             }
+          }
         }
+      }
+    };
+  </script>
+  <style>
+    /* Custom scrollbar and animations */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-        .block-perfect {
-            background: linear-gradient(135deg, var(--primary-light), var(--primary));
-        }
+    @keyframes flameFlicker {
+      0%, 100% { transform: scaleY(1) scaleX(1); opacity: 0.9; }
+      50% { transform: scaleY(1.18) scaleX(0.95); opacity: 1; }
+    }
+    .flame-anim {
+      animation: flameFlicker 0.4s infinite ease-in-out alternate;
+      transform-origin: bottom center;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.4)); }
+      50% { filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.85)); }
+    }
+    .active-tray-glow {
+      animation: pulseGlow 1.8s infinite ease-in-out;
+    }
 
-        .block-leftover {
-            background: linear-gradient(135deg, #FCD34D, var(--leftover));
-        }
-
-        .block-empty {
-            background-color: var(--empty);
-            box-shadow: none;
-            opacity: 0.5;
-            animation: fadeIn 0.3s ease forwards;
-        }
-
-        @keyframes fadeIn {
-            to {
-                opacity: 0.5;
-                transform: scale(1);
-            }
-        }
-
-        /* Custom Range Slider */
-        input[type=range] {
-            -webkit-appearance: none;
-            width: 100%;
-            background: transparent;
-        }
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 24px;
-            width: 24px;
-            border-radius: 50%;
-            background: var(--primary);
-            cursor: pointer;
-            margin-top: -8px;
-            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.4);
-        }
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 8px;
-            cursor: pointer;
-            background: #D1D5DB;
-            border-radius: 4px;
-        }
-        
-        .mode-btn.active {
-            background-color: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-    </style>
+    /* Prevent mobile canvas dragging from triggering erratic pull-to-refresh */
+    #refineryCanvas {
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col antialiased selection:bg-amber-500 selection:text-slate-950 text-sm sm:text-base">
 
-    <header class="bg-indigo-600 text-white p-4 shadow-md sticky top-0 z-10">
-        <div class="container mx-auto flex justify-between items-center max-w-6xl">
-            <h1 class="text-xl md:text-2xl font-bold flex items-center gap-2">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
-                Square & Root Explorer
-            </h1>
-            <button id="mute-btn" class="p-2 bg-indigo-500 rounded-full hover:bg-indigo-400 transition" aria-label="Toggle Sound">
-                <svg id="icon-vol-on" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5 10c-.828 0-1.5.672-1.5 1.5v3c0 .828.672 1.5 1.5 1.5h3.5l4.5 4.5V3.5L8.5 10H5z"></path></svg>
-                <svg id="icon-vol-off" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h2.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+  <header class="border-b border-slate-800 bg-slate-900/95 backdrop-blur sticky top-0 z-40 px-3.5 sm:px-6 lg:px-8 py-3 sm:py-3.5 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-2.5 sm:gap-3">
+      <div class="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-xl sm:text-2xl shadow-lg shadow-amber-500/20 shrink-0">
+        🛢️
+      </div>
+      <div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <h1 class="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-white">Virtual Oil Refinery</h1>
+          <span class="text-xs sm:text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            CBSE Grade 9
+          </span>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-400 line-clamp-1">Fractional Distillation of Crude Oil Simulation</p>
+      </div>
+    </div>
+
+    <!-- Mode switch, sound, and download buttons -->
+    <div class="flex items-center gap-2 text-xs sm:text-sm flex-wrap">
+      <button id="downloadBtn" title="Download entire interactive app for 100% offline use" class="px-3 sm:px-3.5 py-2 rounded-lg border border-emerald-500/50 bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-300 transition flex items-center gap-1.5 font-medium shadow-sm active:scale-95">
+        <span class="text-sm">💾</span>
+        <span class="hidden xs:inline sm:inline">Download App</span>
+        <span class="xs:hidden sm:hidden">Save App</span>
+      </button>
+      <button id="soundToggleBtn" class="px-3 sm:px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5 active:scale-95">
+        <span id="soundIcon">🔊</span>
+        <span id="soundLabel" class="hidden sm:inline">Sound On</span>
+      </button>
+      <a href="#pedagogy-section" class="px-3 py-2 rounded-lg border border-indigo-700/60 bg-indigo-950/50 hover:bg-indigo-900/60 text-indigo-300 transition font-medium hidden md:inline-flex">
+        📚 NCERT Concepts
+      </a>
+      <a href="#quiz-section" class="px-3 py-2 rounded-lg border border-emerald-700/60 bg-emerald-950/50 hover:bg-emerald-900/60 text-emerald-300 transition font-medium">
+        🎯 Quiz
+      </a>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 lg:p-6 flex flex-col gap-4 sm:gap-6">
+
+    <!-- Top Info Banner with Key Scientific Takeaway -->
+    <div class="bg-gradient-to-r from-amber-950/40 via-slate-900 to-indigo-950/40 border border-amber-500/30 rounded-2xl p-3.5 sm:p-4 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs sm:text-sm md:text-base leading-relaxed">
+      <div class="flex items-start gap-3">
+        <span class="text-2xl sm:text-3xl mt-0.5 shrink-0">⚠️</span>
+        <div>
+          <strong class="text-amber-300 font-semibold text-sm sm:text-base">Important Grade 9 Concept:</strong>
+          <span class="text-slate-300 ml-1">
+            Crude petroleum is <span class="underline decoration-amber-400 font-medium">not separated into pure single chemical compounds</span>. It is separated into <strong>"fractions"</strong>—each being a mixture of hydrocarbons condensing within a narrow boiling point range!
+          </span>
+        </div>
+      </div>
+      <span class="shrink-0 text-slate-300 text-xs sm:text-xs bg-slate-800/80 px-2.5 py-1.5 rounded-md border border-slate-700 font-medium">
+        NCERT: Is Matter Around Us Pure?
+      </span>
+    </div>
+
+    <!-- Main Workspace Grid: Controls + Interactive Column + Inspector -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
+
+      <!-- LEFT COLUMN: Canvas + Physical Apparatus -->
+      <div class="lg:col-span-8 bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 sm:p-5 shadow-2xl flex flex-col gap-4">
+
+        <!-- Top Apparatus Controls Bar -->
+        <div class="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+          <div class="flex items-center gap-2 flex-wrap">
+            <button id="startBtn" class="min-h-[44px] px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs sm:text-sm shadow-md shadow-amber-500/20 transition flex items-center gap-2">
+              <span id="startIcon" class="text-sm">▶</span>
+              <span id="startText">Start Feed & Boil</span>
             </button>
-        </div>
-    </header>
+            <button id="tourBtn" class="min-h-[44px] px-3.5 py-2.5 rounded-xl bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-600/50 text-indigo-300 active:scale-95 text-xs sm:text-sm font-semibold transition flex items-center gap-1.5" title="Step through each fraction automatically">
+              <span>🧭</span>
+              <span>Auto Tour</span>
+            </button>
+            <button id="speedBtn" class="min-h-[44px] px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs sm:text-sm border border-slate-700 font-mono transition" title="Toggle simulation animation speed">
+              1x Speed
+            </button>
+            <button id="resetBtn" class="min-h-[44px] px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-medium text-xs sm:text-sm border border-slate-700 transition">
+              ↺ Reset
+            </button>
+          </div>
 
-    <main class="flex-grow container mx-auto p-4 max-w-6xl flex flex-col lg:flex-row gap-6 items-start mt-4">
-        
-        <div class="w-full lg:w-1/3 flex flex-col gap-6">
-            
-            <!-- Mode Selector -->
-            <div class="bg-white p-1 rounded-xl shadow-sm border border-gray-200 flex text-center">
-                <button id="mode-build" class="mode-btn active flex-1 py-2 px-4 rounded-lg font-semibold text-gray-600 border border-transparent transition-all">Build a Square</button>
-                <button id="mode-root" class="mode-btn flex-1 py-2 px-4 rounded-lg font-semibold text-gray-600 border border-transparent transition-all">Find Square Root</button>
+          <!-- Live Furnace Readout -->
+          <div class="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm font-mono ml-auto sm:ml-0">
+            <div class="flex flex-col">
+              <span class="text-slate-400 uppercase text-[10px] sm:text-xs tracking-wider">Furnace Temp</span>
+              <div class="flex items-center gap-1.5">
+                <span class="h-2.5 w-2.5 rounded-full bg-orange-500 animate-ping"></span>
+                <span id="furnaceTempDisplay" class="text-lg sm:text-xl font-bold text-orange-400">25°C</span>
+              </div>
             </div>
-
-            <!-- Controls -->
-            <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
-                <h2 id="control-title" class="text-lg font-bold text-gray-700 mb-4">Set Side Length (n)</h2>
-                
-                <div class="flex items-center gap-4 mb-6">
-                    <button id="btn-minus" class="w-12 h-12 rounded-full bg-gray-100 text-gray-700 font-bold text-xl hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center transition shadow-sm">-</button>
-                    <div class="flex-grow text-center">
-                        <span id="current-val-display" class="text-4xl font-extrabold text-indigo-600 math-font">4</span>
-                    </div>
-                    <button id="btn-plus" class="w-12 h-12 rounded-full bg-gray-100 text-gray-700 font-bold text-xl hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center transition shadow-sm">+</button>
-                </div>
-
-                <input type="range" id="number-slider" min="1" max="20" value="4" class="w-full">
-                
-                <div class="flex justify-between text-xs text-gray-400 mt-2 font-medium">
-                    <span id="range-min">1</span>
-                    <span id="range-max">20</span>
-                </div>
+            <div class="h-8 w-px bg-slate-800"></div>
+            <div class="flex flex-col">
+              <span class="text-slate-400 uppercase text-[10px] sm:text-xs tracking-wider">Status</span>
+              <span id="systemStatusDisplay" class="font-semibold text-xs sm:text-sm text-emerald-400">Cold / Idle</span>
             </div>
-
-            <!-- Info Panel -->
-            <div id="info-panel" class="bg-gradient-to-br from-indigo-50 to-blue-50 p-6 rounded-2xl shadow-lg border border-indigo-100">
-                <h3 class="text-sm uppercase tracking-wider font-bold text-indigo-400 mb-2">Mathematical Equation</h3>
-                <div id="equation-display" class="text-3xl font-black text-indigo-900 math-font mb-4">
-                    4 × 4 = 16
-                </div>
-                <div id="explanation-text" class="text-gray-700 text-sm leading-relaxed">
-                    A square with a side length of <strong class="text-indigo-600">4</strong> contains a total of <strong class="text-indigo-600">16</strong> blocks. Therefore, the square of 4 is 16 (4² = 16).
-                </div>
-            </div>
-
+          </div>
         </div>
 
-        <div class="w-full lg:w-2/3 flex flex-col items-center justify-center bg-gray-50 rounded-2xl p-6 lg:p-10 border-2 border-dashed border-gray-200">
-            <div id="grid-wrapper" class="w-full relative">
-                <!-- Grid Labels -->
-                <div id="top-label" class="absolute -top-8 left-0 right-0 text-center font-bold text-indigo-600 math-font text-xl transition-opacity">n = 4</div>
-                <div id="left-label" class="absolute top-0 bottom-0 -left-8 flex items-center font-bold text-indigo-600 math-font text-xl transition-opacity" style="writing-mode: vertical-rl; transform: rotate(180deg);">n = 4</div>
-                
-                <!-- The Grid -->
-                <div id="grid-container">
-                    <!-- Blocks injected by JS -->
-                </div>
-            </div>
-            <div id="grid-footer" class="mt-8 text-center hidden">
-                <span class="inline-block px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-semibold mr-2">Perfect Square</span>
-                <span class="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-semibold">Leftover Blocks</span>
-            </div>
+        <!-- Heat Slider Controller -->
+        <div class="bg-slate-950/40 p-3 rounded-xl border border-slate-800/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
+          <div class="flex items-center gap-2">
+            <span class="text-lg sm:text-xl">🔥</span>
+            <label for="furnaceSlider" class="text-xs sm:text-sm font-medium text-slate-200">
+              Target Furnace Heat:
+            </label>
+          </div>
+          <div class="flex items-center gap-2.5 w-full sm:w-72">
+            <span class="text-xs font-mono text-slate-400">25°C</span>
+            <input type="range" id="furnaceSlider" min="25" max="420" value="25" class="w-full accent-amber-500 cursor-pointer h-2.5 bg-slate-800 rounded-lg">
+            <span class="text-xs sm:text-sm font-mono text-amber-400 font-bold min-w-[54px] text-right" id="sliderValDisplay">400°C</span>
+          </div>
         </div>
 
-    </main>
+        <!-- Canvas Display of Fractionating Column & Piping -->
+        <div class="relative w-full aspect-[4/3] sm:aspect-[16/10] md:aspect-[16/9] bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+          <canvas id="refineryCanvas" class="w-full h-full block cursor-pointer"></canvas>
 
-    <script>
-        // --- AUDIO SYSTEM (Web Audio API) ---
-        let audioCtx;
-        let isMuted = false;
+          <!-- Instructions Overlay Badge on Canvas -->
+          <div class="absolute bottom-2.5 left-2.5 bg-slate-950/90 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-700/70 text-xs sm:text-xs text-slate-200 pointer-events-none flex items-center gap-2 shadow">
+            <span>👆 Tap trays to inspect fractions & boiling points</span>
+          </div>
 
-        function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+          <!-- Dynamic Temperature Probe Tooltip overlay -->
+          <div id="probeTooltip" class="absolute hidden bg-slate-950/95 border border-amber-400/60 rounded-lg px-2.5 py-1 text-xs font-mono text-amber-300 pointer-events-none shadow-lg backdrop-blur z-20">
+            Probe: <span id="probeTemp" class="font-bold">--</span>°C
+          </div>
+
+          <!-- Gradient Column Legend -->
+          <div class="absolute top-2.5 right-2.5 bg-slate-950/90 backdrop-blur p-2 rounded-lg border border-slate-800 text-[11px] sm:text-xs flex flex-col gap-1.5 pointer-events-none shadow">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-sm bg-sky-400 shrink-0"></span>
+              <span class="text-slate-200 font-medium">Top (~25°C): Volatile</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-sm bg-amber-500 shrink-0"></span>
+              <span class="text-slate-200 font-medium">Middle: Medium</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-sm bg-red-600 shrink-0"></span>
+              <span class="text-slate-200 font-medium">Base (&gt;350°C): Residue</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Fraction Quick Badges Row (Horizontally scrollable on mobile) -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 no-scrollbar scroll-smooth">
+          <span class="text-xs sm:text-sm text-slate-400 mr-1 font-semibold shrink-0">Select:</span>
+          <button data-fraction="gases" class="fraction-quick-btn text-xs sm:text-sm font-medium px-3 py-2 rounded-xl border border-sky-500/40 bg-sky-950/40 text-sky-300 hover:bg-sky-900/50 shrink-0 active:scale-95 transition">Refinery Gas</button>
+          <button data-fraction="petrol" class="fraction-quick-btn text-xs sm:text-sm font-medium px-3 py-2 rounded-xl border border-emerald-500/40 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/50 shrink-0 active:scale-95 transition">Petrol</button>
+          <button data-fraction="kerosene" class="fraction-quick-btn text-xs sm:text-sm font-medium px-3 py-2 rounded-xl border border-teal-500/40 bg-teal-950/40 text-teal-300 hover:bg-teal-900/50 shrink-0 active:scale-95 transition">Kerosene</button>
+          <button data-fraction="diesel" class="fraction-quick-btn text-xs sm:text-sm font-medium px-3 py-2 rounded-xl border border-amber-500/40 bg-amber-950/40 text-amber-300 hover:bg-amber-900/50 shrink-0 active:scale-95 transition">Diesel</button>
+          <button data-fraction="lubricant" class="fraction-quick-btn text-xs sm:text-sm font-medium px-3 py-2 rounded-xl border border-orange-500/40 bg-orange-950/40 text-orange-300 hover:bg-orange-900/50 shrink-0 active:scale-95 transition">Lubricant</button>
+          <button data-fraction="fueloil" class="fraction-quick-btn text-xs sm:text-sm font-medium px-3 py-2 rounded-xl border border-rose-500/40 bg-rose-950/40 text-rose-300 hover:bg-rose-900/50 shrink-0 active:scale-95 transition">Fuel Oil</button>
+          <button data-fraction="bitumen" class="fraction-quick-btn text-xs sm:text-sm font-medium px-3 py-2 rounded-xl border border-purple-500/40 bg-purple-950/40 text-purple-300 hover:bg-purple-900/50 shrink-0 active:scale-95 transition">Bitumen</button>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN: Detailed Fraction Inspector & Molecular Insights -->
+      <div class="lg:col-span-4 flex flex-col gap-4">
+
+        <!-- Active Fraction Card -->
+        <div id="fractionCard" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl transition-all duration-300 flex flex-col gap-4">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <span id="cardBadge" class="text-xs font-mono font-semibold px-2.5 py-1 rounded bg-sky-500/20 text-sky-400 border border-sky-500/30">
+                TOP TRAY • LOWEST BOILING POINT
+              </span>
+              <h2 id="cardTitle" class="text-xl sm:text-2xl font-bold text-white mt-1.5">Refinery Gases</h2>
+              <p id="cardSub" class="text-xs sm:text-sm text-slate-300">Very volatile short-chain hydrocarbons</p>
+            </div>
+            <div id="cardIconBox" class="h-12 w-12 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-2xl shrink-0">
+              🔥
+            </div>
+          </div>
+
+          <!-- Specs Table -->
+          <div class="grid grid-cols-2 gap-2.5 text-xs sm:text-sm font-mono bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+            <div class="flex flex-col">
+              <span class="text-slate-400 text-xs">CONDENSATION TEMP</span>
+              <span id="cardTempRange" class="font-bold text-amber-400 text-xs sm:text-sm">&lt; 20°C - 25°C</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-slate-400 text-xs">CARBON CHAIN LENGTH</span>
+              <span id="cardCarbon" class="font-bold text-sky-300 text-xs sm:text-sm">C₁ to C₄</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-slate-400 text-xs">VISCOSITY & FLOW</span>
+              <span id="cardViscosity" class="text-slate-200 font-sans text-xs sm:text-sm font-medium">Gas / Highly Volatile</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-slate-400 text-xs">FLAMMABILITY</span>
+              <span id="cardFlammability" class="text-emerald-400 font-sans text-xs sm:text-sm font-medium">Extremely High</span>
+            </div>
+          </div>
+
+          <!-- Uses and Applications -->
+          <div>
+            <h3 class="text-xs sm:text-sm font-bold text-slate-200 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+              <span>🎯</span> Common Everyday Uses:
+            </h3>
+            <ul id="cardUsesList" class="space-y-2 text-xs sm:text-sm text-slate-200">
+              <li class="flex items-center gap-2"><span class="text-amber-400">•</span> LPG cylinders for domestic cooking</li>
+              <li class="flex items-center gap-2"><span class="text-amber-400">•</span> Fuel for refinery heating furnaces</li>
+              <li class="flex items-center gap-2"><span class="text-amber-400">•</span> Bottled propane and butane camping stoves</li>
+            </ul>
+          </div>
+
+          <!-- CBSE Why it condensed here -->
+          <div class="bg-indigo-950/40 border border-indigo-800/50 p-3.5 rounded-xl text-xs sm:text-sm text-indigo-200 leading-relaxed">
+            <strong class="text-indigo-300 block mb-1 text-xs sm:text-sm font-semibold">🔬 Why does it collect here?</strong>
+            <p id="cardScienceReason">
+              Molecules have very tiny molecular weights and extremely weak Van der Waals attractions. Hence, their boiling point is below room temperature; they remain gaseous until the very cool summit of the column!
+            </p>
+          </div>
+
+          <!-- Molecular Visual Simulation -->
+          <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex flex-col gap-2">
+            <div class="flex justify-between items-center text-xs sm:text-sm">
+              <span class="text-slate-300 font-mono">Simulated Hydrocarbon Chain</span>
+              <span id="molFormula" class="text-amber-400 font-mono font-bold">Methane / Propane</span>
+            </div>
+            <div id="molChainContainer" class="h-10 w-full bg-slate-900 rounded-lg flex items-center justify-center gap-1.5 overflow-hidden px-2">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Quick Summary Table Box -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 text-xs sm:text-sm">
+          <h3 class="font-bold text-slate-200 mb-2.5 flex items-center justify-between">
+            <span class="text-xs sm:text-sm">Column Trend Rules (NCERT)</span>
+            <span class="text-xs font-mono text-amber-400">Grade 9</span>
+          </h3>
+          <div class="space-y-2.5 text-slate-300 text-xs sm:text-sm">
+            <div class="flex items-center justify-between py-1.5 border-b border-slate-800">
+              <span class="font-medium">⬆️ Moving Higher up:</span>
+              <span class="text-sky-300 font-semibold">Lower B.P., less viscous</span>
+            </div>
+            <div class="flex items-center justify-between py-1.5 border-b border-slate-800">
+              <span class="font-medium">⬇️ Moving Downwards:</span>
+              <span class="text-orange-400 font-semibold">Higher B.P., dark, viscous</span>
+            </div>
+            <div class="flex items-center justify-between py-1">
+              <span class="font-medium">Intermolecular Attraction:</span>
+              <span class="text-emerald-300 font-semibold">Increases with chain length</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- EDUCATIONAL SECTION: Theory & CBSE Distinction Guide -->
+    <section id="pedagogy-section" class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-6 lg:p-7 flex flex-col gap-6">
+      <div class="border-b border-slate-800 pb-4">
+        <span class="text-xs sm:text-sm font-mono font-bold text-indigo-400 uppercase tracking-wider">NCERT Chapter 2: Is Matter Around Us Pure?</span>
+        <h2 class="text-xl md:text-2xl font-bold text-white mt-1">Science of Fractional Distillation</h2>
+        <p class="text-slate-400 text-xs sm:text-sm mt-1">Key concepts, working mechanism, and exam distinctions for Class 9 students.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs sm:text-sm">
+        <div class="bg-slate-950 p-4 sm:p-5 rounded-xl border border-slate-800 flex flex-col gap-2.5">
+          <div class="h-9 w-9 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-lg">1</div>
+          <h3 class="font-bold text-slate-100 text-sm sm:text-base">Why does it work?</h3>
+          <p class="text-slate-300 leading-relaxed text-xs sm:text-sm">
+            Crude oil is a complex mixture of hundreds of different hydrocarbons. Larger molecules have greater surface areas, resulting in much stronger <strong>intermolecular attractive forces</strong>. Consequently, large molecules demand significantly more heat energy to vaporize than smaller molecules.
+          </p>
+        </div>
+
+        <div class="bg-slate-950 p-4 sm:p-5 rounded-xl border border-slate-800 flex flex-col gap-2.5">
+          <div class="h-9 w-9 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-lg">2</div>
+          <h3 class="font-bold text-slate-100 text-sm sm:text-base">The Fractionating Column</h3>
+          <p class="text-slate-300 leading-relaxed text-xs sm:text-sm">
+            The tall fractionating column features a continuous <strong>temperature gradient</strong>: extremely hot (~370°C - 400°C) at the bottom, and cool (~25°C) at the top. As vapors ascend, each fraction condenses as soon as the temperature inside the column drops below its own specific boiling point.
+          </p>
+        </div>
+
+        <div class="bg-slate-950 p-4 sm:p-5 rounded-xl border border-slate-800 flex flex-col gap-2.5">
+          <div class="h-9 w-9 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg">3</div>
+          <h3 class="font-bold text-slate-100 text-sm sm:text-base">Mixtures, Not Pure Compounds</h3>
+          <p class="text-slate-300 leading-relaxed text-xs sm:text-sm">
+            Unlike water (<span class="font-mono font-medium">100°C</span>) or pure ethanol (<span class="font-mono font-medium">78°C</span>), fractions do not have sharp, single boiling points. Instead, each fraction (like kerosene or diesel) is a mixture of several hydrocarbons that boil within a <strong>narrow range of temperatures</strong>.
+          </p>
+        </div>
+      </div>
+
+      <!-- Distinction Table: Simple Distillation vs Fractional Distillation -->
+      <div class="overflow-x-auto mt-2">
+        <h3 class="text-xs sm:text-sm font-bold text-white mb-3 flex items-center gap-2">
+          <span class="text-amber-400">⚖️</span>
+          Must-Know CBSE Comparison: Simple vs. Fractional Distillation
+        </h3>
+        <table class="w-full text-left text-xs sm:text-sm border border-slate-800 rounded-xl overflow-hidden">
+          <thead class="bg-slate-950 text-slate-300 uppercase font-mono text-xs border-b border-slate-800">
+            <tr>
+              <th class="p-3">Feature</th>
+              <th class="p-3 text-cyan-400">Simple Distillation</th>
+              <th class="p-3 text-amber-400">Fractional Distillation</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800 bg-slate-900/50">
+            <tr>
+              <td class="p-3 font-semibold text-slate-200">Boiling Point Difference (ΔT)</td>
+              <td class="p-3 text-slate-300">Requires a large difference (usually <strong>greater than 25 K / 25°C</strong>).</td>
+              <td class="p-3 text-slate-300">Used when boiling points are very close (<strong>less than 25 K / 25°C</strong> apart).</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-semibold text-slate-200">Apparatus Required</td>
+              <td class="p-3 text-slate-300">Distillation flask, thermometer, Liebig condenser, beaker.</td>
+              <td class="p-3 text-slate-300">A special <strong>fractionating column</strong> packed with glass beads or bubble trays.</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-semibold text-slate-200">Nature of Process</td>
+              <td class="p-3 text-slate-300">Single cycle of evaporation followed directly by condensation.</td>
+              <td class="p-3 text-slate-300">Repeated, successive vaporization-condensation cycles along the column height.</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-semibold text-slate-200">Classic Textbook Examples</td>
+              <td class="p-3 text-slate-300">Separating acetone (B.P. 56°C) and water (B.P. 100°C); salt from water.</td>
+              <td class="p-3 text-slate-300">Crude petroleum refining; separation of different gases from liquid air.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- INTERACTIVE FRACTION PREDICTOR QUIZ -->
+    <section id="quiz-section" class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-6 lg:p-7 flex flex-col gap-4">
+      <div class="flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-800 pb-3.5">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🎯</span>
+            <h2 class="text-lg sm:text-xl md:text-2xl font-bold text-white">Interactive Practice: "Predict the Fraction"</h2>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-400 mt-0.5">Test your understanding of hydrocarbon properties, column levels, and real-life uses.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="text-xs sm:text-sm font-mono bg-slate-950 px-3.5 py-2 rounded-lg border border-slate-800">
+            Score: <span id="quizScore" class="text-amber-400 font-bold">0</span> / <span id="quizTotal" class="text-slate-400 font-bold">5</span>
+          </div>
+          <button id="restartQuizBtn" class="text-xs sm:text-sm px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition active:scale-95 font-medium">
+            Restart Quiz
+          </button>
+        </div>
+      </div>
+
+      <div id="quizContainer" class="bg-slate-950/70 p-4 sm:p-5 rounded-xl border border-slate-800 flex flex-col gap-4">
+        <div class="flex items-center justify-between text-xs sm:text-sm text-slate-400">
+          <span id="quizQuestionNumber" class="font-mono font-semibold text-amber-400 text-xs sm:text-sm">Question 1 of 5</span>
+          <span id="quizBadge" class="bg-slate-800 px-2.5 py-1 rounded text-xs text-slate-300 font-medium">Boiling Point & Uses</span>
+        </div>
+
+        <h3 id="quizQuestionText" class="text-sm md:text-base lg:text-lg font-medium text-white leading-relaxed">
+          Loading question...
+        </h3>
+
+        <div id="quizOptions" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+          <!-- Quiz buttons injected dynamically -->
+        </div>
+
+        <div id="quizFeedback" class="hidden p-4 rounded-xl text-xs sm:text-sm flex items-start gap-3 transition leading-relaxed">
+          <span id="feedbackIcon" class="text-xl shrink-0"></span>
+          <div id="feedbackText" class="leading-relaxed"></div>
+        </div>
+
+        <div class="flex justify-end pt-2">
+          <button id="nextQuestionBtn" class="hidden px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm shadow-md transition active:scale-95">
+            Next Question →
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Toast Notification element -->
+  <div id="toastNotification" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 border border-emerald-500 text-emerald-200 px-4 py-3 rounded-xl shadow-2xl text-xs max-w-sm flex items-center gap-2.5 pointer-events-none">
+    <span class="text-base">✅</span>
+    <span id="toastMessage">App downloaded successfully!</span>
+  </div>
+
+  <footer class="border-t border-slate-800/80 bg-slate-950 py-5 px-4 text-center text-xs text-slate-500">
+    <p>Virtual Oil Refinery Simulation • Designed for CBSE Grade 9 Science Curriculum</p>
+    <p class="text-[11px] mt-1 text-slate-600">Simulates bubble tray condensation gradients, vapor dynamics, and hydrocarbon physics.</p>
+  </footer>
+
+  <script>
+    /* Hydrocarbon Fractions Database tailored to NCERT / CBSE Grade 9 curriculum */
+    const FRACTIONS_DATA = {
+      gases: {
+        id: "gases",
+        name: "Refinery Gases",
+        shortName: "Gases",
+        tempRange: "< 20°C - 25°C",
+        tempMin: 0,
+        tempMax: 25,
+        carbon: "C₁ to C₄",
+        carbonCount: 3,
+        trayIndex: 0, // highest tray
+        viscosity: "Gaseous / Extremely volatile",
+        flammability: "Extremely high",
+        color: "#38bdf8", // sky-400
+        darkColor: "#0284c7",
+        icon: "🔥",
+        badge: "TOP TRAY • LOWEST BOILING POINT",
+        sub: "Very volatile short-chain hydrocarbons (Methane, Propane, Butane)",
+        uses: [
+          "Liquefied Petroleum Gas (LPG) for cooking & heating cylinders",
+          "Bottled camping fuel (propane and butane)",
+          "Feedstock for petrochemical cracking to make plastics"
+        ],
+        why: "Molecules with 1 to 4 carbon atoms have tiny molecular mass and exceptionally weak Van der Waals attractions. Hence, their boiling point is below ambient temperature; they rise cleanly to the very top exit without condensing in the column."
+      },
+      petrol: {
+        id: "petrol",
+        name: "Petrol (Gasoline)",
+        shortName: "Petrol",
+        tempRange: "30°C - 110°C",
+        tempMin: 30,
+        tempMax: 110,
+        carbon: "C₅ to C₈",
+        carbonCount: 7,
+        trayIndex: 1,
+        viscosity: "Very low viscosity, runny liquid",
+        flammability: "Very easily ignited",
+        color: "#34d399", // emerald-400
+        darkColor: "#059669",
+        icon: "🚗",
+        badge: "LIGHT FRACTION • HIGH VOLATILITY",
+        sub: "Volatile liquid mixture of pentane, hexane, heptane, and octane",
+        uses: [
+          "Primary fuel for spark-ignition internal combustion car engines",
+          "Dry cleaning solvent for delicate fabrics",
+          "Chemical solvent in industrial paints and lacquers"
+        ],
+        why: "These moderate-length chains boil between 30°C and 110°C. They rise through the hot lower zones as vapor and condense near the cool top tray where temperatures drop below 110°C."
+      },
+      kerosene: {
+        id: "kerosene",
+        name: "Kerosene (Paraffin Oil)",
+        shortName: "Kerosene",
+        tempRange: "180°C - 260°C",
+        tempMin: 180,
+        tempMax: 260,
+        carbon: "C₁₀ to C₁₆",
+        carbonCount: 12,
+        trayIndex: 2,
+        viscosity: "Moderately thin liquid",
+        flammability: "Catches fire easily with a wick",
+        color: "#2dd4bf", // teal-400
+        darkColor: "#0d9488",
+        icon: "✈️",
+        badge: "MIDDLE DISTILLATE • AVIATION FUEL",
+        sub: "Clean burning kerosene hydrocarbon mixture",
+        uses: [
+          "Aviation fuel for commercial jet aircraft (Jet A-1)",
+          "Domestic heating fuel and paraffin lanterns / lamps",
+          "Fuel for military turbojet and rocket engines"
+        ],
+        why: "Medium length hydrocarbon chains experience noticeable intermolecular forces. They require at least 180°C to stay vaporized and promptly liquefy on middle trays."
+      },
+      diesel: {
+        id: "diesel",
+        name: "Diesel Oil (Gas Oil)",
+        shortName: "Diesel",
+        tempRange: "260°C - 340°C",
+        tempMin: 260,
+        tempMax: 340,
+        carbon: "C₁₄ to C₂₀",
+        carbonCount: 16,
+        trayIndex: 3,
+        viscosity: "Medium viscosity, oily texture",
+        flammability: "Ignites under compression without spark",
+        color: "#fbbf24", // amber-400
+        darkColor: "#d97706",
+        icon: "🚛",
+        badge: "HEAVY DISTILLATE • COMPRESSION IGNITION",
+        sub: "Energy-dense fuel for heavy transport",
+        uses: [
+          "Fuel for heavy motor vehicles: trucks, buses, trains, and tractors",
+          "Backup emergency diesel electric generators in hospitals",
+          "Heavy agricultural pumping equipment"
+        ],
+        why: "With 14 to 20 carbon atoms, diesel chains are strongly attracted to each other. They condense lower down in the column where temperatures hover around 260°C to 340°C."
+      },
+      lubricant: {
+        id: "lubricant",
+        name: "Lubricating Oil",
+        shortName: "Lubricant",
+        tempRange: "300°C - 370°C",
+        tempMin: 300,
+        tempMax: 370,
+        carbon: "C₂₀ to C₅₀",
+        carbonCount: 28,
+        trayIndex: 4,
+        viscosity: "High viscosity, thick, slippery",
+        flammability: "Hard to ignite, requires preheating",
+        color: "#fb923c", // orange-400
+        darkColor: "#ea580c",
+        icon: "⚙️",
+        badge: "HEAVY LIQUID • FRICTION REDUCTION",
+        sub: "Long slippery hydrocarbon chains",
+        uses: [
+          "Engine motor oil for automobiles and machinery",
+          "Industrial gear grease and protective anti-wear coatings",
+          "Petroleum jelly (Vaseline) and candle paraffin wax"
+        ],
+        why: "Very strong intermolecular attractions keep these long chains bound tightly. They condense in the lower hot zones and rarely ascend past middle trays."
+      },
+      fueloil: {
+        id: "fueloil",
+        name: "Fuel Oil",
+        shortName: "Fuel Oil",
+        tempRange: "370°C - 400°C",
+        tempMin: 370,
+        tempMax: 400,
+        carbon: "C₂₀ to C₇₀",
+        carbonCount: 42,
+        trayIndex: 5,
+        viscosity: "Very thick, dark, viscous liquid",
+        flammability: "Must be heated before burning",
+        color: "#f43f5e", // rose-500
+        darkColor: "#e11d48",
+        icon: "🚢",
+        badge: "BOTTOM DISTILLATE • INDUSTRIAL HEATING",
+        sub: "Heavy bunker fuel for industrial boilers",
+        uses: [
+          "Fuel for ocean-going container ships and marine tankers",
+          "Thermal power station boiler fuel for generating electricity",
+          "Industrial furnaces in steel mills and glass factories"
+        ],
+        why: "Massive molecules with very high boiling points. Only the hottest furnace vapors push them up, condensing quickly right above the bottom residue."
+      },
+      bitumen: {
+        id: "bitumen",
+        name: "Bitumen (Residue / Asphalt)",
+        shortName: "Bitumen",
+        tempRange: "> 400°C (Non-volatile residue)",
+        tempMin: 400,
+        tempMax: 600,
+        carbon: "C₇₀+",
+        carbonCount: 70,
+        trayIndex: 6, // base drain
+        viscosity: "Black semi-solid or tar-like solid at room temp",
+        flammability: "Non-flammable at ordinary temperatures",
+        color: "#a855f7", // purple-500
+        darkColor: "#7e22ce",
+        icon: "🛣️",
+        badge: "BOTTOM RESIDUE • DOES NOT BOIL",
+        sub: "Extremely heavy, dark hydrocarbon tar",
+        uses: [
+          "Surfacing and tarring roads and highways (asphalt)",
+          "Waterproofing flat roofs and building foundations",
+          "Corrosion-resistant sealant for underground pipelines"
+        ],
+        why: "The molecules are so gigantic and heavily attracted to one another that they do not vaporize at all at 400°C. They simply drain out as a molten liquid residue at the very bottom of the tower."
+      }
+    };
+
+    // Web Audio API Sound generator (Self-contained, no external URLs)
+    class RefineryAudio {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
         }
-
-        function playTone(freq, type = 'sine', duration = 0.1, vol = 0.1) {
-            if (isMuted) return;
-            initAudio();
-            
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            
-            gain.gain.setValueAtTime(0, audioCtx.currentTime);
-            gain.gain.linearRampToValueAtTime(vol, audioCtx.currentTime + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-            
+      }
+      playBubble() {
+        if (!this.enabled) return;
+        try {
+          this.init();
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const freq = 320 + Math.random() * 220;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(freq + 150, this.ctx.currentTime + 0.08);
+          gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.09);
+        } catch(e) {}
+      }
+      playClick() {
+        if (!this.enabled) return;
+        try {
+          this.init();
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(580, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.06);
+        } catch(e) {}
+      }
+      playSuccess() {
+        if (!this.enabled) return;
+        try {
+          this.init();
+          const now = this.ctx.currentTime;
+          [523.25, 659.25, 783.99].forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+            gain.gain.setValueAtTime(0.08, now + idx * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.2);
             osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            
-            osc.start();
-            osc.stop(audioCtx.currentTime + duration);
+            gain.connect(this.ctx.destination);
+            osc.start(now + idx * 0.08);
+            osc.stop(now + idx * 0.08 + 0.22);
+          });
+        } catch(e) {}
+      }
+      playWrong() {
+        if (!this.enabled) return;
+        try {
+          this.init();
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, now);
+          osc.frequency.linearRampToValueAtTime(140, now + 0.2);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.22);
+        } catch(e) {}
+      }
+    }
+    const sound = new RefineryAudio();
+
+    const canvas = document.getElementById('refineryCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let isRunning = false;
+    let simSpeed = 1.0; // Dynamic speed multiplier
+    let currentFurnaceTemp = 25; // in °C
+    let targetFurnaceTemp = 400; // default target
+    let selectedFractionKey = 'gases';
+    let animationFrameId = null;
+    let tourTimer = null;
+    let isTourRunning = false;
+
+    // Simulation particle systems
+    let vaporBubbles = [];
+    let liquidDrops = [];
+    let trayHitboxes = []; // clickable regions for trays & outlets
+
+    // Setup canvas responsiveness with HiDPI support
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.resetTransform?.();
+      ctx.scale(dpr, dpr);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 150));
+
+    // Adaptive geometry based on screen size (mobile-optimized layout)
+    function getLayout() {
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      const isMobile = w < 540;
+
+      // Crude oil tank (bottom left)
+      const tank = {
+        x: isMobile ? w * 0.02 : w * 0.04,
+        y: h * 0.60,
+        w: isMobile ? w * 0.13 : w * 0.14,
+        h: h * 0.30
+      };
+
+      // Heating furnace (center-left)
+      const furnace = {
+        x: isMobile ? w * 0.19 : w * 0.23,
+        y: h * 0.62,
+        w: isMobile ? w * 0.16 : w * 0.16,
+        h: h * 0.28
+      };
+
+      // Fractionating Column (center-right)
+      const col = {
+        x: isMobile ? w * 0.40 : w * 0.45,
+        y: h * 0.08,
+        w: isMobile ? w * 0.22 : w * 0.20,
+        h: h * 0.82
+      };
+
+      const trayCount = 7;
+      const trays = [];
+      const keys = ['gases', 'petrol', 'kerosene', 'diesel', 'lubricant', 'fueloil', 'bitumen'];
+
+      for (let i = 0; i < trayCount; i++) {
+        const trayY = col.y + (col.h * 0.10) + (i * (col.h * 0.77) / (trayCount - 1));
+        trays.push({
+          index: i,
+          key: keys[i],
+          name: FRACTIONS_DATA[keys[i]].name,
+          shortName: FRACTIONS_DATA[keys[i]].shortName,
+          y: trayY,
+          color: FRACTIONS_DATA[keys[i]].color
+        });
+      }
+
+      return { w, h, isMobile, tank, furnace, col, trays };
+    }
+
+    function spawnVaporBubble(layout) {
+      if (currentFurnaceTemp < 60) return;
+      const startX = layout.col.x + (layout.col.w * 0.2) + Math.random() * (layout.col.w * 0.6);
+      const startY = layout.col.y + layout.col.h * 0.85;
+
+      const allowedKeys = Object.keys(FRACTIONS_DATA).filter(k => {
+        return currentFurnaceTemp >= FRACTIONS_DATA[k].tempMin;
+      });
+      if (allowedKeys.length === 0) return;
+      const chosenKey = allowedKeys[Math.floor(Math.random() * allowedKeys.length)];
+      const fraction = FRACTIONS_DATA[chosenKey];
+
+      vaporBubbles.push({
+        x: startX,
+        y: startY,
+        vx: (Math.random() - 0.5) * 0.7,
+        vy: - (1.1 + Math.random() * 1.5) * simSpeed,
+        radius: (layout.isMobile ? 1.6 : 2.2) + Math.random() * 2.2,
+        targetTray: fraction.trayIndex,
+        key: chosenKey,
+        color: fraction.color,
+        alpha: 0.85
+      });
+    }
+
+    function spawnLiquidDrop(x, y, color, key) {
+      liquidDrops.push({
+        x: x,
+        y: y,
+        vx: (1.2 + Math.random() * 0.8) * simSpeed,
+        vy: (Math.random() - 0.5) * 0.4,
+        radius: 2.2 + Math.random() * 1.6,
+        color: color,
+        key: key,
+        life: 1.0
+      });
+    }
+
+    function drawApparatus() {
+      const layout = getLayout();
+      const { w, h, isMobile, tank, furnace, col, trays } = layout;
+
+      ctx.clearRect(0, 0, w, h);
+      trayHitboxes = [];
+
+      // 1. Draw Crude Oil Storage Tank
+      ctx.save();
+      ctx.fillStyle = "#1e293b";
+      ctx.strokeStyle = "#475569";
+      ctx.lineWidth = isMobile ? 1.8 : 2.5;
+
+      ctx.beginPath();
+      ctx.roundRect(tank.x, tank.y, tank.w, tank.h, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      const oilLevelHeight = isRunning ? tank.h * 0.65 : tank.h * 0.75;
+      const oilGrad = ctx.createLinearGradient(tank.x, tank.y + tank.h - oilLevelHeight, tank.x, tank.y + tank.h);
+      oilGrad.addColorStop(0, "#1c1917");
+      oilGrad.addColorStop(1, "#09090b");
+      ctx.fillStyle = oilGrad;
+      ctx.beginPath();
+      ctx.roundRect(tank.x + 3, tank.y + tank.h - oilLevelHeight, tank.w - 6, oilLevelHeight - 3, [0, 0, 6, 6]);
+      ctx.fill();
+
+      // Label Crude Oil
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = isMobile ? "bold 10px Inter, sans-serif" : "bold 11px Inter, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("CRUDE", tank.x + tank.w / 2, tank.y + (isMobile ? 16 : 20));
+      ctx.fillText("OIL", tank.x + tank.w / 2, tank.y + (isMobile ? 28 : 32));
+      ctx.restore();
+
+      // 2. Feed pipe from tank to furnace
+      ctx.save();
+      ctx.strokeStyle = "#334155";
+      ctx.lineWidth = isMobile ? 4.5 : 7;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(tank.x + tank.w, tank.y + tank.h * 0.7);
+      ctx.lineTo(furnace.x, tank.y + tank.h * 0.7);
+      ctx.stroke();
+
+      if (isRunning) {
+        ctx.strokeStyle = "#09090b";
+        ctx.lineWidth = isMobile ? 2.5 : 3.5;
+        ctx.setLineDash([5, 5]);
+        ctx.lineDashOffset = -performance.now() * 0.04 * simSpeed;
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      ctx.restore();
+
+      // 3. Furnace
+      ctx.save();
+      ctx.fillStyle = "#1e293b";
+      ctx.strokeStyle = "#f97316";
+      ctx.lineWidth = isMobile ? 1.8 : 2.5;
+      ctx.beginPath();
+      ctx.roundRect(furnace.x, furnace.y, furnace.w, furnace.h, [10, 10, 5, 5]);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.strokeStyle = currentFurnaceTemp > 100 ? "#ea580c" : "#475569";
+      ctx.lineWidth = isMobile ? 2 : 3.5;
+      ctx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const cy = furnace.y + (isMobile ? 12 : 18) + (i * (isMobile ? 10 : 14));
+        ctx.moveTo(furnace.x + (isMobile ? 6 : 10), cy);
+        ctx.lineTo(furnace.x + furnace.w - (isMobile ? 6 : 10), cy);
+      }
+      ctx.stroke();
+
+      // Furnace Fire Flames
+      if (currentFurnaceTemp > 50) {
+        const flameHeight = Math.min(furnace.h * 0.35, (currentFurnaceTemp / 400) * (isMobile ? 22 : 35));
+        const flameY = furnace.y + furnace.h - 6;
+        const flameGrad = ctx.createLinearGradient(0, flameY - flameHeight, 0, flameY);
+        flameGrad.addColorStop(0, "#fde047");
+        flameGrad.addColorStop(0.4, "#f97316");
+        flameGrad.addColorStop(1, "#dc2626");
+
+        ctx.fillStyle = flameGrad;
+        ctx.beginPath();
+        const fCount = isMobile ? 4 : 5;
+        for (let j = 0; j < fCount; j++) {
+          const fx = furnace.x + (isMobile ? 6 : 10) + (j * (furnace.w - (isMobile ? 12 : 20)) / (fCount - 1));
+          const flicker = Math.sin((performance.now() * 0.015 * simSpeed) + j) * 3;
+          ctx.moveTo(fx - (isMobile ? 4 : 6), flameY);
+          ctx.quadraticCurveTo(fx, flameY - flameHeight + flicker, fx + (isMobile ? 4 : 6), flameY);
         }
+        ctx.fill();
+      }
 
-        function playPop(index, total) {
-            // Pitch goes up slightly based on index
-            const baseFreq = 400;
-            const freq = baseFreq + (index * (400 / total));
-            playTone(freq, 'sine', 0.1, 0.05);
-        }
+      ctx.fillStyle = "#f8fafc";
+      ctx.font = isMobile ? "bold 10px Inter, sans-serif" : "bold 11px Inter, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("FURNACE", furnace.x + furnace.w / 2, furnace.y + furnace.h * 0.68);
+      ctx.fillStyle = "#fdba74";
+      ctx.font = isMobile ? "bold 11px JetBrains Mono, monospace" : "bold 12px JetBrains Mono, monospace";
+      ctx.fillText(`${Math.round(currentFurnaceTemp)}°C`, furnace.x + furnace.w / 2, furnace.y + furnace.h * 0.88);
+      ctx.restore();
 
-        function playChime() {
-            if (isMuted) return;
-            // Play a satisfying major chord (C major: C4, E4, G4, C5)
-            setTimeout(() => playTone(261.63, 'triangle', 0.6, 0.1), 0);
-            setTimeout(() => playTone(329.63, 'triangle', 0.6, 0.1), 50);
-            setTimeout(() => playTone(392.00, 'triangle', 0.6, 0.1), 100);
-            setTimeout(() => playTone(523.25, 'triangle', 0.8, 0.15), 150);
-        }
+      // 4. Hot vapor transfer pipe
+      ctx.save();
+      ctx.strokeStyle = currentFurnaceTemp > 150 ? "#ea580c" : "#334155";
+      ctx.lineWidth = isMobile ? 5 : 8;
+      ctx.beginPath();
+      ctx.moveTo(furnace.x + furnace.w, furnace.y + (isMobile ? 24 : 35));
+      ctx.lineTo(col.x, furnace.y + (isMobile ? 24 : 35));
+      ctx.stroke();
 
-        // --- APP STATE ---
-        const state = {
-            mode: 'build', // 'build' or 'root'
-            buildValue: 4, // 1 to 20
-            rootValue: 16  // 1 to 400
-        };
+      if (isRunning && currentFurnaceTemp > 60) {
+        ctx.strokeStyle = "#fed7aa";
+        ctx.lineWidth = isMobile ? 2 : 3;
+        ctx.setLineDash([3, 3]);
+        ctx.lineDashOffset = -performance.now() * 0.06 * simSpeed;
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      ctx.restore();
 
-        // --- DOM ELEMENTS ---
-        const els = {
-            modeBuild: document.getElementById('mode-build'),
-            modeRoot: document.getElementById('mode-root'),
-            slider: document.getElementById('number-slider'),
-            btnMinus: document.getElementById('btn-minus'),
-            btnPlus: document.getElementById('btn-plus'),
-            currentValDisplay: document.getElementById('current-val-display'),
-            controlTitle: document.getElementById('control-title'),
-            rangeMin: document.getElementById('range-min'),
-            rangeMax: document.getElementById('range-max'),
-            equationDisplay: document.getElementById('equation-display'),
-            explanationText: document.getElementById('explanation-text'),
-            gridContainer: document.getElementById('grid-container'),
-            topLabel: document.getElementById('top-label'),
-            leftLabel: document.getElementById('left-label'),
-            gridFooter: document.getElementById('grid-footer'),
-            muteBtn: document.getElementById('mute-btn'),
-            iconVolOn: document.getElementById('icon-vol-on'),
-            iconVolOff: document.getElementById('icon-vol-off')
-        };
+      // 5. Fractionating Column Body
+      ctx.save();
+      const colGrad = ctx.createLinearGradient(col.x, col.y, col.x, col.y + col.h);
+      colGrad.addColorStop(0, "#082f49");
+      colGrad.addColorStop(0.3, "#0f172a");
+      colGrad.addColorStop(0.6, "#1e1b4b");
+      colGrad.addColorStop(0.85, "#450a0a");
+      colGrad.addColorStop(1, "#1c1917");
 
-        // --- CORE LOGIC & RENDERING ---
-        
-        function updateUI(animateGrid = true) {
-            let val = state.mode === 'build' ? state.buildValue : state.rootValue;
-            els.currentValDisplay.textContent = val;
-            els.slider.value = val;
+      ctx.fillStyle = colGrad;
+      ctx.strokeStyle = "#475569";
+      ctx.lineWidth = isMobile ? 2 : 3;
+      ctx.beginPath();
+      ctx.roundRect(col.x, col.y, col.w, col.h, [col.w / 2, col.w / 2, 8, 8]);
+      ctx.fill();
+      ctx.stroke();
 
-            if (state.mode === 'build') {
-                renderBuildMode(val, animateGrid);
-            } else {
-                renderRootMode(val, animateGrid);
-            }
-        }
+      // Temperature gradient vertical indicator bar
+      const gradBarX = isMobile ? col.x - 8 : col.x - 14;
+      const gradBar = ctx.createLinearGradient(0, col.y + 15, 0, col.y + col.h - 15);
+      gradBar.addColorStop(0, "#38bdf8");
+      gradBar.addColorStop(0.3, "#34d399");
+      gradBar.addColorStop(0.5, "#fbbf24");
+      gradBar.addColorStop(0.8, "#f97316");
+      gradBar.addColorStop(1, "#ef4444");
 
-        function renderBuildMode(n, animate) {
-            const area = n * n;
-            
-            // Text & Labels
-            els.controlTitle.textContent = "Set Side Length (n)";
-            els.equationDisplay.innerHTML = `${n} × ${n} = <span class="text-primary">${area}</span>`;
-            els.explanationText.innerHTML = `A square with a side length of <strong class="text-indigo-600">${n}</strong> contains a total of <strong class="text-indigo-600">${area}</strong> blocks. Therefore, the square of ${n} is ${area} (${n}² = ${area}).`;
-            els.topLabel.textContent = `n = ${n}`;
-            els.leftLabel.textContent = `n = ${n}`;
-            els.topLabel.style.opacity = 1;
-            els.leftLabel.style.opacity = 1;
-            els.gridFooter.classList.add('hidden');
+      ctx.fillStyle = gradBar;
+      ctx.beginPath();
+      ctx.roundRect(gradBarX, col.y + 15, isMobile ? 4 : 6, col.h - 30, 2);
+      ctx.fill();
 
-            // Grid Rendering
-            els.gridContainer.innerHTML = '';
-            els.gridContainer.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
-            
-            for (let i = 0; i < area; i++) {
-                const block = document.createElement('div');
-                block.className = 'grid-block block-perfect';
-                if (animate) {
-                    // Stagger animation radially or linearly
-                    const row = Math.floor(i / n);
-                    const col = i % n;
-                    const delay = (row + col) * 0.02;
-                    block.style.animationDelay = `${delay}s`;
-                    
-                    // Trigger sound on animation start
-                    if (!isMuted) {
-                        setTimeout(() => playPop(i, area), delay * 1000);
-                    }
-                } else {
-                    block.style.animation = 'none';
-                    block.style.opacity = 1;
-                    block.style.transform = 'scale(1)';
-                }
-                els.gridContainer.appendChild(block);
-            }
-        }
+      // Temp indicators
+      ctx.fillStyle = "#38bdf8";
+      ctx.font = isMobile ? "bold 10px JetBrains Mono, monospace" : "bold 9px JetBrains Mono, monospace";
+      ctx.textAlign = "right";
+      ctx.fillText("25°", gradBarX - 2, col.y + 20);
 
-        function renderRootMode(area, animate) {
-            const exactRoot = Math.sqrt(area);
-            const isPerfect = Number.isInteger(exactRoot);
-            const baseSide = Math.floor(exactRoot);
-            const perfectArea = baseSide * baseSide;
-            const leftover = area - perfectArea;
-            
-            // For visualization, we need a grid big enough to hold 'area' blocks.
-            // If it's a perfect square, baseSide is enough. If not, we need baseSide + 1.
-            const gridSize = isPerfect ? baseSide : baseSide + 1;
-            const totalGridSlots = gridSize * gridSize;
+      ctx.fillStyle = "#ef4444";
+      ctx.fillText("400°", gradBarX - 2, col.y + col.h - 16);
 
-            // Text & Labels
-            els.controlTitle.textContent = "Set Total Area (Blocks)";
-            
-            if (isPerfect) {
-                els.equationDisplay.innerHTML = `√${area} = <span class="text-primary">${baseSide}</span>`;
-                els.explanationText.innerHTML = `<strong class="text-indigo-600">${area}</strong> blocks perfectly form a square with side length <strong class="text-indigo-600">${baseSide}</strong>. It is a Perfect Square!`;
-                if (animate) playChime();
-            } else {
-                els.equationDisplay.innerHTML = `√${area} ≈ <span class="text-leftover">${exactRoot.toFixed(2)}</span>`;
-                els.explanationText.innerHTML = `<strong class="text-indigo-600">${area}</strong> blocks form a <strong class="text-indigo-600">${baseSide} × ${baseSide}</strong> square (using ${perfectArea} blocks), with <strong class="text-yellow-600">${leftover} leftover</strong> blocks. The exact root is between ${baseSide} and ${baseSide + 1}.`;
-            }
+      // 6. Draw Internal Trays and Outlet Pipes
+      trays.forEach((tray) => {
+        const isSelected = (tray.key === selectedFractionKey);
+        const frac = FRACTIONS_DATA[tray.key];
+        const outletLength = isMobile ? w * 0.11 : w * 0.15;
+        const outletEndX = col.x + col.w + outletLength;
 
-            els.topLabel.style.opacity = 0;
-            els.leftLabel.style.opacity = 0;
-            els.gridFooter.classList.remove('hidden');
-
-            // Grid Rendering
-            els.gridContainer.innerHTML = '';
-            els.gridContainer.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
-            
-            for (let i = 0; i < totalGridSlots; i++) {
-                const block = document.createElement('div');
-                
-                if (i < perfectArea) {
-                    block.className = 'grid-block block-perfect';
-                } else if (i < perfectArea + leftover) {
-                    block.className = 'grid-block block-leftover';
-                } else {
-                    block.className = 'grid-block block-empty';
-                }
-
-                if (animate) {
-                    const row = Math.floor(i / gridSize);
-                    const col = i % gridSize;
-                    const delay = (row + col) * 0.015;
-                    block.style.animationDelay = `${delay}s`;
-                    
-                    if (!isMuted && i < area) {
-                         setTimeout(() => playPop(i, area), delay * 1000);
-                    }
-                } else {
-                    block.style.animation = 'none';
-                    block.style.opacity = block.className.includes('empty') ? 0.5 : 1;
-                    block.style.transform = 'scale(1)';
-                }
-                
-                els.gridContainer.appendChild(block);
-            }
-        }
-
-        // --- EVENT LISTENERS ---
-
-        els.modeBuild.addEventListener('click', () => {
-            state.mode = 'build';
-            els.modeBuild.classList.add('active');
-            els.modeRoot.classList.remove('active');
-            
-            // Adjust slider range
-            els.slider.min = 1;
-            els.slider.max = 20;
-            els.rangeMin.textContent = '1';
-            els.rangeMax.textContent = '20';
-            
-            // Sync value intelligently
-            state.buildValue = Math.min(20, Math.round(Math.sqrt(state.rootValue)) || 4);
-            
-            updateUI(true);
+        // Save hitbox for clicking/touching with generous mobile tap padding
+        trayHitboxes.push({
+          key: tray.key,
+          x: col.x - 10,
+          y: tray.y - 14,
+          w: (w - col.x) + 20,
+          h: 28
         });
 
-        els.modeRoot.addEventListener('click', () => {
-            state.mode = 'root';
-            els.modeRoot.classList.add('active');
-            els.modeBuild.classList.remove('active');
-            
-            // Adjust slider range
-            els.slider.min = 1;
-            els.slider.max = 400;
-            els.rangeMin.textContent = '1';
-            els.rangeMax.textContent = '400';
-            
-            // Sync value intelligently
-            state.rootValue = state.buildValue * state.buildValue;
-            
-            updateUI(true);
-        });
+        // Bubble-cap tray platform
+        ctx.strokeStyle = isSelected ? frac.color : "#475569";
+        ctx.lineWidth = isSelected ? (isMobile ? 2.5 : 3.5) : (isMobile ? 1.5 : 2);
+        ctx.beginPath();
+        ctx.moveTo(col.x + 6, tray.y);
+        ctx.lineTo(col.x + col.w - 5, tray.y);
+        ctx.stroke();
 
-        els.slider.addEventListener('input', (e) => {
-            const val = parseInt(e.target.value);
-            if (state.mode === 'build') {
-                state.buildValue = val;
-            } else {
-                state.rootValue = val;
-            }
-            // Real-time update without re-triggering full animation for performance, 
-            // but we want the sounds and visual updates.
-            updateUI(true);
-        });
-
-        function adjustValue(delta) {
-            let val = state.mode === 'build' ? state.buildValue : state.rootValue;
-            let min = parseInt(els.slider.min);
-            let max = parseInt(els.slider.max);
-            
-            val += delta;
-            if (val >= min && val <= max) {
-                if (state.mode === 'build') state.buildValue = val;
-                else state.rootValue = val;
-                updateUI(true);
-            }
+        // Bubble caps
+        const capCount = isMobile ? 2 : 3;
+        for (let c = 1; c <= capCount; c++) {
+          const capX = col.x + (c * col.w / (capCount + 1));
+          ctx.fillStyle = isSelected ? frac.color : "#64748b";
+          ctx.beginPath();
+          ctx.arc(capX, tray.y - (isMobile ? 2.5 : 3.5), isMobile ? 2.5 : 3.5, Math.PI, 0);
+          ctx.fill();
         }
 
-        els.btnMinus.addEventListener('click', () => adjustValue(-1));
-        els.btnPlus.addEventListener('click', () => adjustValue(1));
+        // Outlet pipe
+        ctx.strokeStyle = isSelected ? frac.color : "#334155";
+        ctx.lineWidth = isSelected ? (isMobile ? 2.5 : 4) : (isMobile ? 1.8 : 2.5);
+        ctx.beginPath();
+        ctx.moveTo(col.x + col.w - 3, tray.y);
+        ctx.lineTo(outletEndX, tray.y);
+        ctx.stroke();
 
-        els.muteBtn.addEventListener('click', () => {
-            isMuted = !isMuted;
-            if (isMuted) {
-                els.iconVolOn.classList.add('hidden');
-                els.iconVolOff.classList.remove('hidden');
-                els.muteBtn.classList.replace('bg-indigo-500', 'bg-gray-400');
-            } else {
-                els.iconVolOn.classList.remove('hidden');
-                els.iconVolOff.classList.add('hidden');
-                els.muteBtn.classList.replace('bg-gray-400', 'bg-indigo-500');
-                initAudio(); // Initialize on explicit user intent
-                playTone(440, 'sine', 0.1, 0.1); // Feedback pip
-            }
-        });
+        // Active highlighted tray glow
+        if (isSelected) {
+          ctx.fillStyle = frac.color + "28";
+          ctx.fillRect(col.x + 3, tray.y - 9, col.w - 6, 18);
+        }
 
-        // Initialize on load
-        window.onload = () => {
-            updateUI(true);
-            
-            // First click anywhere initializes audio context if not muted
-            document.body.addEventListener('click', initAudio, { once: true });
-            document.body.addEventListener('touchstart', initAudio, { once: true });
-        };
+        // Liquid dripping
+        const isCondensing = currentFurnaceTemp >= frac.tempMin;
+        if (isRunning && isCondensing && Math.random() < 0.28) {
+          spawnLiquidDrop(outletEndX, tray.y, frac.color, tray.key);
+        }
 
-    </script>
+        // Collection Label outside (Adaptive text for mobile)
+        ctx.font = isSelected ? (isMobile ? "bold 11px Inter, sans-serif" : "bold 11px Inter, sans-serif") : (isMobile ? "10px Inter, sans-serif" : "10px Inter, sans-serif");
+        ctx.fillStyle = isSelected ? frac.color : "#94a3b8";
+        ctx.textAlign = "left";
+        const displayName = isMobile ? tray.shortName : frac.name;
+        ctx.fillText(displayName, outletEndX + (isMobile ? 5 : 8), tray.y + 3);
+
+        if (!isMobile) {
+          ctx.font = "9px JetBrains Mono, monospace";
+          ctx.fillStyle = isSelected ? "#f8fafc" : "#64748b";
+          ctx.fillText(frac.tempRange, outletEndX + 8, tray.y + 13);
+        }
+      });
+
+      ctx.restore();
+
+      // 7. Update and draw Rising Vapor Particles
+      ctx.save();
+      for (let i = vaporBubbles.length - 1; i >= 0; i--) {
+        const p = vaporBubbles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.002 * simSpeed;
+
+        const targetY = trays[p.targetTray].y;
+
+        if (p.y <= targetY) {
+          if (Math.random() < 0.25) {
+            sound.playBubble();
+          }
+          spawnLiquidDrop(layout.col.x + layout.col.w * 0.9, targetY, p.color, p.key);
+          vaporBubbles.splice(i, 1);
+          continue;
+        }
+
+        if (p.x < col.x + 6 || p.x > col.x + col.w - 6) {
+          p.vx *= -1;
+        }
+
+        if (p.y < col.y || p.alpha <= 0) {
+          vaporBubbles.splice(i, 1);
+          continue;
+        }
+
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // 8. Update and draw Condensing Liquid Drops
+      ctx.save();
+      for (let j = liquidDrops.length - 1; j >= 0; j--) {
+        const d = liquidDrops[j];
+        d.x += d.vx;
+        d.y += d.vy;
+        d.life -= 0.025 * simSpeed;
+
+        if (d.life <= 0) {
+          liquidDrops.splice(j, 1);
+          continue;
+        }
+
+        ctx.fillStyle = d.color;
+        ctx.globalAlpha = d.life;
+        ctx.beginPath();
+        ctx.arc(d.x, d.y, d.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function updateSimulation() {
+      if (isRunning) {
+        const delta = 0.04 * simSpeed;
+        if (currentFurnaceTemp < targetFurnaceTemp) {
+          currentFurnaceTemp += Math.min(3.0 * simSpeed, (targetFurnaceTemp - currentFurnaceTemp) * delta);
+        } else if (currentFurnaceTemp > targetFurnaceTemp) {
+          currentFurnaceTemp -= Math.min(2.5 * simSpeed, (currentFurnaceTemp - targetFurnaceTemp) * delta);
+        }
+
+        const layout = getLayout();
+        const bubbleGenRate = Math.floor((currentFurnaceTemp / 400) * 3 * simSpeed);
+        for (let k = 0; k < bubbleGenRate; k++) {
+          spawnVaporBubble(layout);
+        }
+      } else {
+        if (currentFurnaceTemp > 25) {
+          currentFurnaceTemp -= 0.8 * simSpeed;
+          if (currentFurnaceTemp < 25) currentFurnaceTemp = 25;
+        }
+      }
+
+      document.getElementById('furnaceTempDisplay').textContent = `${Math.round(currentFurnaceTemp)}°C`;
+      const statusEl = document.getElementById('systemStatusDisplay');
+      if (!isRunning && currentFurnaceTemp <= 26) {
+        statusEl.textContent = "Cold / Idle";
+        statusEl.className = "font-semibold text-xs text-slate-400";
+      } else if (currentFurnaceTemp < 150) {
+        statusEl.textContent = "Warming Up...";
+        statusEl.className = "font-semibold text-xs text-amber-400";
+      } else if (currentFurnaceTemp < 350) {
+        statusEl.textContent = "Vaporizing...";
+        statusEl.className = "font-semibold text-xs text-orange-400";
+      } else {
+        statusEl.textContent = "Fractionating";
+        statusEl.className = "font-semibold text-xs text-emerald-400";
+      }
+
+      drawApparatus();
+      animationFrameId = requestAnimationFrame(updateSimulation);
+    }
+
+    function renderMolecularChain(carbonCount) {
+      const container = document.getElementById('molChainContainer');
+      container.innerHTML = '';
+
+      // Draw simulated Ball-and-Stick backbone
+      for (let i = 0; i < Math.min(carbonCount, 16); i++) {
+        // Carbon atom sphere
+        const cAtom = document.createElement('div');
+        cAtom.className = 'h-6 w-6 rounded-full bg-slate-200 text-slate-950 font-mono font-bold text-[10px] sm:text-xs flex items-center justify-center shadow shrink-0';
+        cAtom.textContent = 'C';
+        container.appendChild(cAtom);
+
+        // Bond
+        if (i < Math.min(carbonCount, 16) - 1) {
+          const bond = document.createElement('div');
+          bond.className = 'h-1.5 w-2.5 bg-amber-400 rounded-sm shrink-0';
+          container.appendChild(bond);
+        }
+      }
+
+      if (carbonCount > 16) {
+        const more = document.createElement('span');
+        more.className = 'text-xs text-slate-400 font-mono pl-1';
+        more.textContent = `...+${carbonCount - 16} more`;
+        container.appendChild(more);
+      }
+    }
+
+    function selectFraction(key) {
+      sound.playClick();
+      selectedFractionKey = key;
+      const f = FRACTIONS_DATA[key];
+      if (!f) return;
+
+      // Update Inspector Card
+      document.getElementById('cardBadge').textContent = f.badge;
+      document.getElementById('cardBadge').style.borderColor = f.color;
+      document.getElementById('cardBadge').style.color = f.color;
+
+      document.getElementById('cardTitle').textContent = f.name;
+      document.getElementById('cardSub').textContent = f.sub;
+      document.getElementById('cardTempRange').textContent = f.tempRange;
+      document.getElementById('cardCarbon').textContent = f.carbon;
+      document.getElementById('cardViscosity').textContent = f.viscosity;
+      document.getElementById('cardFlammability').textContent = f.flammability;
+      document.getElementById('cardScienceReason').textContent = f.why;
+      document.getElementById('molFormula').textContent = `${f.carbon} Hydrocarbons`;
+
+      // Update card icon
+      document.getElementById('cardIconBox').textContent = f.icon;
+
+      // Update uses list
+      const usesListEl = document.getElementById('cardUsesList');
+      usesListEl.innerHTML = '';
+      f.uses.forEach(use => {
+        const li = document.createElement('li');
+        li.className = 'flex items-center gap-2';
+        li.innerHTML = `<span style="color: ${f.color}">•</span> ${use}`;
+        usesListEl.appendChild(li);
+      });
+
+      // Update Molecular Graphic
+      renderMolecularChain(f.carbonCount);
+
+      // Highlight corresponding quick button
+      document.querySelectorAll('.fraction-quick-btn').forEach(btn => {
+        if (btn.dataset.fraction === key) {
+          btn.classList.add('ring-2', 'ring-amber-400');
+        } else {
+          btn.classList.remove('ring-2', 'ring-amber-400');
+        }
+      });
+    }
+
+    const QUIZ_QUESTIONS = [
+      {
+        question: "Which petroleum fraction has the lowest boiling point range and exits from the very top of the fractionating column?",
+        options: ["Diesel Oil", "Refinery Gases", "Kerosene", "Lubricating Oil"],
+        correct: 1,
+        explanation: "Refinery gases (C₁–C₄) have the smallest molecular masses and weakest intermolecular forces, boiling at temperatures below 25°C."
+      },
+      {
+        question: "Which of the following fuels is specifically collected as the middle distillate fraction used for commercial jet aviation?",
+        options: ["Petrol (Gasoline)", "Bitumen", "Kerosene", "Fuel Oil"],
+        correct: 2,
+        explanation: "Kerosene (boiling range approx. 180°C - 260°C) is purified for use as aviation turbine fuel (Jet A-1) and paraffin heaters."
+      },
+      {
+        question: "Why is crude oil separated by Fractional Distillation rather than Simple Distillation?",
+        options: [
+          "Crude oil is a solid compound at room temperature",
+          "The fractions have boiling points that are very close to one another (< 25 K difference between adjacent components)",
+          "Simple distillation would chemically decompose carbon into graphite",
+          "Petroleum is an inorganic ionic salt"
+        ],
+        correct: 1,
+        explanation: "In Class 9 NCERT: Fractional distillation is used when the boiling point difference between two or more miscible liquids is less than 25 K (25°C)."
+      },
+      {
+        question: "What remains at the bottom of the fractionating column because its boiling point is well above 400°C and does not vaporize?",
+        options: ["Petrol", "Refinery gas", "Bitumen / Asphalt", "LPG"],
+        correct: 2,
+        explanation: "Bitumen consists of massive hydrocarbons (C₇₀+) with huge intermolecular attractions that do not evaporate even at 400°C. It is drained as residue for road making."
+      },
+      {
+        question: "As you move from the bottom to the top of the fractionating column, what happens to the hydrocarbon properties?",
+        options: [
+          "Carbon chain length increases and boiling point rises",
+          "Volatility increases, viscosity decreases, and boiling point drops",
+          "Color turns darker and flammability decreases",
+          "Liquids become more viscous and harder to ignite"
+        ],
+        correct: 1,
+        explanation: "Higher up the column, temperatures are cooler; only shorter, less viscous, lighter, and more flammable molecules remain in vapor form to condense."
+      }
+    ];
+
+    let currentQuestionIndex = 0;
+    let quizScore = 0;
+    let hasAnsweredCurrent = false;
+
+    function renderQuizQuestion() {
+      hasAnsweredCurrent = false;
+      const q = QUIZ_QUESTIONS[currentQuestionIndex];
+
+      document.getElementById('quizQuestionNumber').textContent = `Question ${currentQuestionIndex + 1} of ${QUIZ_QUESTIONS.length}`;
+      document.getElementById('quizQuestionText').textContent = q.question;
+      document.getElementById('quizScore').textContent = quizScore;
+      document.getElementById('quizTotal').textContent = QUIZ_QUESTIONS.length;
+
+      const feedbackBox = document.getElementById('quizFeedback');
+      feedbackBox.className = 'hidden p-3.5 rounded-xl text-xs flex items-start gap-2.5 transition';
+
+      const nextBtn = document.getElementById('nextQuestionBtn');
+      nextBtn.classList.add('hidden');
+
+      const optionsBox = document.getElementById('quizOptions');
+      optionsBox.innerHTML = '';
+
+      q.options.forEach((optText, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full text-left p-3.5 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs sm:text-sm font-medium transition active:scale-[0.99] flex items-center gap-3';
+        btn.innerHTML = `<span class="h-6 w-6 rounded-lg bg-slate-800 flex items-center justify-center font-mono font-bold text-amber-400 shrink-0 text-xs">${String.fromCharCode(65 + idx)}</span> <span>${optText}</span>`;
+
+        btn.onclick = () => handleQuizAnswer(idx, btn);
+        optionsBox.appendChild(btn);
+      });
+    }
+
+    function handleQuizAnswer(selectedIndex, buttonEl) {
+      if (hasAnsweredCurrent) return;
+      hasAnsweredCurrent = true;
+
+      const q = QUIZ_QUESTIONS[currentQuestionIndex];
+      const feedbackBox = document.getElementById('quizFeedback');
+      const feedbackIcon = document.getElementById('feedbackIcon');
+      const feedbackText = document.getElementById('feedbackText');
+      const nextBtn = document.getElementById('nextQuestionBtn');
+      const optionButtons = document.querySelectorAll('#quizOptions button');
+
+      feedbackBox.classList.remove('hidden');
+
+      if (selectedIndex === q.correct) {
+        sound.playSuccess();
+        quizScore++;
+        document.getElementById('quizScore').textContent = quizScore;
+        buttonEl.classList.add('border-emerald-500', 'bg-emerald-950/40', 'text-emerald-200');
+        feedbackBox.className = 'p-3.5 rounded-xl text-xs flex items-start gap-2.5 bg-emerald-950/50 border border-emerald-500/40 text-emerald-300';
+        feedbackIcon.textContent = '✅';
+        feedbackText.innerHTML = `<strong>Correct!</strong> ${q.explanation}`;
+      } else {
+        sound.playWrong();
+        buttonEl.classList.add('border-rose-500', 'bg-rose-950/40', 'text-rose-200');
+        // Highlight correct option
+        optionButtons[q.correct].classList.add('border-emerald-500', 'bg-emerald-950/40', 'text-emerald-200');
+        feedbackBox.className = 'p-3.5 rounded-xl text-xs flex items-start gap-2.5 bg-rose-950/50 border border-rose-500/40 text-rose-300';
+        feedbackIcon.textContent = '❌';
+        feedbackText.innerHTML = `<strong>Not quite.</strong> ${q.explanation}`;
+      }
+
+      nextBtn.classList.remove('hidden');
+      if (currentQuestionIndex === QUIZ_QUESTIONS.length - 1) {
+        nextBtn.textContent = 'See Final Result 🎉';
+      } else {
+        nextBtn.textContent = 'Next Question →';
+      }
+    }
+
+    document.getElementById('nextQuestionBtn').addEventListener('click', () => {
+      sound.playClick();
+      if (currentQuestionIndex < QUIZ_QUESTIONS.length - 1) {
+        currentQuestionIndex++;
+        renderQuizQuestion();
+      } else {
+        // Quiz completed
+        const feedbackBox = document.getElementById('quizFeedback');
+        feedbackBox.className = 'p-4 rounded-xl text-xs flex items-start gap-3 bg-indigo-950/60 border border-indigo-500/50 text-indigo-200';
+        document.getElementById('feedbackIcon').textContent = '🏆';
+        document.getElementById('feedbackText').innerHTML = `<strong class="text-white text-sm block mb-1">Quiz Completed!</strong> You scored <strong>${quizScore} out of ${QUIZ_QUESTIONS.length}</strong>! Excellent job reviewing fractional distillation for CBSE Grade 9!`;
+        document.getElementById('nextQuestionBtn').classList.add('hidden');
+      }
+    });
+
+    document.getElementById('restartQuizBtn').addEventListener('click', () => {
+      sound.playClick();
+      quizScore = 0;
+      currentQuestionIndex = 0;
+      renderQuizQuestion();
+    });
+
+    // Handle Canvas clicks on Trays or Outlets
+    canvas.addEventListener('click', (evt) => {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = evt.clientX - rect.left;
+      const clickY = evt.clientY - rect.top;
+
+      // Check tray hitboxes
+      for (const box of trayHitboxes) {
+        if (
+          clickX >= box.x &&
+          clickX <= box.x + box.w &&
+          clickY >= box.y &&
+          clickY <= box.y + box.h
+        ) {
+          selectFraction(box.key);
+          break;
+        }
+      }
+    });
+
+    // Start / Pause Feed toggle
+    const startBtn = document.getElementById('startBtn');
+    startBtn.addEventListener('click', () => {
+      sound.playClick();
+      isRunning = !isRunning;
+      if (isRunning) {
+        startBtn.classList.replace('bg-amber-500', 'bg-rose-500');
+        startBtn.classList.replace('hover:bg-amber-400', 'hover:bg-rose-400');
+        document.getElementById('startIcon').textContent = '⏸';
+        document.getElementById('startText').textContent = 'Pause Refinery';
+      } else {
+        startBtn.classList.replace('bg-rose-500', 'bg-amber-500');
+        startBtn.classList.replace('hover:bg-rose-400', 'hover:bg-amber-400');
+        document.getElementById('startIcon').textContent = '▶';
+        document.getElementById('startText').textContent = 'Resume Boiling';
+      }
+    });
+
+    // Reset button
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      sound.playClick();
+      isRunning = false;
+      currentFurnaceTemp = 25;
+      targetFurnaceTemp = 400;
+      document.getElementById('furnaceSlider').value = 400;
+      document.getElementById('sliderValDisplay').textContent = "400°C";
+      vaporBubbles = [];
+      liquidDrops = [];
+
+      startBtn.classList.replace('bg-rose-500', 'bg-amber-500');
+      startBtn.classList.replace('hover:bg-rose-400', 'hover:bg-amber-400');
+      document.getElementById('startIcon').textContent = '▶';
+      document.getElementById('startText').textContent = 'Start Feed & Boil';
+      selectFraction('gases');
+    });
+
+    // Furnace Slider
+    const furnaceSlider = document.getElementById('furnaceSlider');
+    furnaceSlider.value = targetFurnaceTemp;
+    document.getElementById('sliderValDisplay').textContent = `${targetFurnaceTemp}°C`;
+
+    furnaceSlider.addEventListener('input', (e) => {
+      targetFurnaceTemp = parseInt(e.target.value);
+      document.getElementById('sliderValDisplay').textContent = `${targetFurnaceTemp}°C`;
+    });
+
+    // Fraction quick buttons
+    document.querySelectorAll('.fraction-quick-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectFraction(btn.dataset.fraction);
+      });
+    });
+
+    // Toast display helper
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotification');
+      const toastMsg = document.getElementById('toastMessage');
+      toastMsg.textContent = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3500);
+    }
+
+    // Download complete standalone simulation file for offline access
+    function downloadSimulationApp() {
+      sound.playSuccess();
+      const doctype = "<!DOCTYPE html>\n";
+      const fullHtml = doctype + document.documentElement.outerHTML;
+      const blob = new Blob([fullHtml], { type: "text/html;charset=utf-8" });
+      const blobUrl = URL.createObjectURL(blob);
+      const downloadLink = document.createElement("a");
+      downloadLink.href = blobUrl;
+      downloadLink.download = "Virtual_Refinery_Fractional_Distillation_CBSE9.html";
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
+      showToast("Simulation file downloaded! Runs completely offline in any web browser.");
+    }
+    document.getElementById('downloadBtn').addEventListener('click', downloadSimulationApp);
+
+    // Speed button toggle (1x -> 2x -> 0.5x)
+    const speedBtn = document.getElementById('speedBtn');
+    speedBtn.addEventListener('click', () => {
+      sound.playClick();
+      if (simSpeed === 1.0) {
+        simSpeed = 2.0;
+        speedBtn.textContent = "2x Speed";
+        speedBtn.classList.add('text-amber-400', 'border-amber-500/50');
+      } else if (simSpeed === 2.0) {
+        simSpeed = 0.5;
+        speedBtn.textContent = "0.5x Speed";
+        speedBtn.classList.replace('text-amber-400', 'text-sky-300');
+      } else {
+        simSpeed = 1.0;
+        speedBtn.textContent = "1x Speed";
+        speedBtn.classList.remove('text-amber-400', 'text-sky-300', 'border-amber-500/50');
+      }
+    });
+
+    // Auto Tour feature: steps through fractions sequentially with audio feedback
+    const tourBtn = document.getElementById('tourBtn');
+    const fractionsOrder = ['gases', 'petrol', 'kerosene', 'diesel', 'lubricant', 'fueloil', 'bitumen'];
+    let tourIdx = 0;
+
+    tourBtn.addEventListener('click', () => {
+      sound.playClick();
+      if (isTourRunning) {
+        clearInterval(tourTimer);
+        isTourRunning = false;
+        tourBtn.innerHTML = '<span>🧭</span><span class="hidden xs:inline">Auto Tour</span>';
+        tourBtn.classList.remove('ring-2', 'ring-indigo-400');
+        return;
+      }
+
+      isTourRunning = true;
+      tourBtn.innerHTML = '<span>⏹</span><span class="hidden xs:inline">Stop Tour</span>';
+      tourBtn.classList.add('ring-2', 'ring-indigo-400');
+
+      // Make sure simulation is running so vapors are shown
+      if (!isRunning) {
+        startBtn.click();
+      }
+
+      tourIdx = 0;
+      selectFraction(fractionsOrder[tourIdx]);
+
+      tourTimer = setInterval(() => {
+        tourIdx = (tourIdx + 1) % fractionsOrder.length;
+        selectFraction(fractionsOrder[tourIdx]);
+      }, 3500);
+    });
+
+    // Mobile touch & click interaction on Canvas
+    function handleCanvasInteraction(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = clientX - rect.left;
+      const clickY = clientY - rect.top;
+
+      // Stop auto tour if user manually interacts
+      if (isTourRunning) {
+        clearInterval(tourTimer);
+        isTourRunning = false;
+        tourBtn.innerHTML = '<span>🧭</span><span class="hidden xs:inline">Auto Tour</span>';
+        tourBtn.classList.remove('ring-2', 'ring-indigo-400');
+      }
+
+      for (const box of trayHitboxes) {
+        if (
+          clickX >= box.x &&
+          clickX <= box.x + box.w &&
+          clickY >= box.y &&
+          clickY <= box.y + box.h
+        ) {
+          selectFraction(box.key);
+          break;
+        }
+      }
+    }
+
+    canvas.addEventListener('click', (evt) => {
+      handleCanvasInteraction(evt.clientX, evt.clientY);
+    });
+
+    canvas.addEventListener('touchstart', (evt) => {
+      if (evt.touches.length > 0) {
+        const touch = evt.touches[0];
+        handleCanvasInteraction(touch.clientX, touch.clientY);
+      }
+    }, { passive: true });
+
+    // Dynamic Column Probe Temperature Tooltip on mousemove / touchmove
+    const probeTooltip = document.getElementById('probeTooltip');
+    const probeTempSpan = document.getElementById('probeTemp');
+
+    function updateProbe(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+      const layout = getLayout();
+
+      if (x >= layout.col.x && x <= layout.col.x + layout.col.w && y >= layout.col.y && y <= layout.col.y + layout.col.h) {
+        // Temperature gradient from top (~25°C) to bottom (current furnace temp or 400°C)
+        const ratio = (y - layout.col.y) / layout.col.h;
+        const maxT = Math.max(80, currentFurnaceTemp);
+        const estimatedT = Math.round(25 + ratio * (maxT - 25));
+
+        probeTempSpan.textContent = estimatedT;
+        probeTooltip.style.left = `${Math.min(rect.width - 95, Math.max(10, x - 45))}px`;
+        probeTooltip.style.top = `${Math.max(10, y - 35)}px`;
+        probeTooltip.classList.remove('hidden');
+      } else {
+        probeTooltip.classList.add('hidden');
+      }
+    }
+
+    canvas.addEventListener('mousemove', (e) => updateProbe(e.clientX, e.clientY));
+    canvas.addEventListener('mouseleave', () => probeTooltip.classList.add('hidden'));
+    canvas.addEventListener('touchmove', (e) => {
+      if (e.touches.length > 0) {
+        updateProbe(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: true });
+    canvas.addEventListener('touchend', () => probeTooltip.classList.add('hidden'));
+
+    // Audio toggle
+    const soundToggleBtn = document.getElementById('soundToggleBtn');
+    soundToggleBtn.addEventListener('click', () => {
+      sound.enabled = !sound.enabled;
+      if (sound.enabled) {
+        document.getElementById('soundIcon').textContent = '🔊';
+        document.getElementById('soundLabel').textContent = 'Sound On';
+      } else {
+        document.getElementById('soundIcon').textContent = '🔇';
+        document.getElementById('soundLabel').textContent = 'Muted';
+      }
+    });
+
+    window.onload = function() {
+      resizeCanvas();
+      selectFraction('gases');
+      renderQuizQuestion();
+      updateSimulation();
+    };
+  </script>
 </body>
 </html>
